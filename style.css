@@ -1,0 +1,34 @@
+.price-up {
+    color: #16a34a; /* Tailwind green-600 */
+}
+.price-down {
+    color: #dc2626; /* Tailwind red-600 */
+}
+.golden-cross {
+    background-color: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10b981;
+}
+.death-cross {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-left: 3px solid #ef4444;
+}
+.signal-bullish {
+    background-color: rgba(16, 185, 129, 0.1);
+}
+.signal-bearish {
+    background-color: rgba(239, 68, 68, 0.1);
+}
+.signal-neutral {
+    background-color: rgba(156, 163, 175, 0.1);
+}
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Analysis Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.2.0/dist/chartjs-adapter-luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Stock Analysis Dashboard</h1>
+                    <p class="text-gray-600">Monitor trends using 20, 50 & 200-day moving averages</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <input type="text" id="stock-search" placeholder="Search stocks..." 
+                               class="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                    <button id="refresh-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Error Message -->
+        <div id="error-message" class="hidden mb-4 p-4 bg-red-100 text-red-700 rounded"></div>
+
+        <!-- Main Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Stock Chart -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="p-4 border-b">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 class="text-xl font-semibold" id="stock-name">Apple Inc. (AAPL)</h2>
+                            <div class="flex items-center gap-2 mt-1">
+                                <span class="text-2xl font-bold" id="stock-price">$0.00</span>
+                                <span id="price-change" class="text-sm font-medium px-2 py-1 rounded">0.00 (0.00%)</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 bg-gray-100 rounded-lg text-sm time-btn" data-range="1D">1D</button>
+                            <button class="px-3 py-1 bg-gray-100 rounded-lg text-sm time-btn" data-range="1W">1W</button>
+                            <button class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium time-btn" data-range="1M">1M</button>
+                            <button class="px-3 py-1 bg-gray-100 rounded-lg text-sm time-btn" data-range="3M">3M</button>
+                            <button class="px-3 py-1 bg-gray-100 rounded-lg text-sm time-btn" data-range="1Y">1Y</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="h-96">
+                        <canvas id="stock-chart"></canvas>
+                    </div>
+                </div>
+                <div class="p-4 border-t">
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-0.5 bg-blue-500"></div>
+                            <span class="text-sm text-gray-600">Price</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-0.5 bg-purple-500"></div>
+                            <span class="text-sm text-gray-600">20-day SMA</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-0.5 bg-yellow-500"></div>
+                            <span class="text-sm text-gray-600">50-day SMA</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-0.5 bg-green-500"></div>
+                            <span class="text-sm text-gray-600">200-day SMA</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Signals and Watchlist -->
+            <div class="space-y-6">
+                <!-- Current Signals -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold">Current Signals</h2>
+                    </div>
+                    <div class="p-4 space-y-4" id="signals-list">
+                        <!-- Signals will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Prediction -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-semibold">Trend Prediction</h2>
+                    </div>
+                    <div class="p-4" id="trend-prediction">
+                        <!-- Prediction will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h2 class="text-lg font-semibold">Your Watchlist</h2>
+                        <button id="add-stock-btn" class="text-blue-600 text-sm font-medium">+ Add Stock</button>
+                    </div>
+                    <div class="divide-y" id="watchlist">
+                        <!-- Watchlist will be populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts Section -->
+        <div class="mt-8 bg-white rounded-xl shadow-md overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-lg font-semibold">Recent Alerts</h2>
+            </div>
+            <div class="divide-y" id="alerts-list">
+                <!-- Alerts will be populated by JS -->
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
