@@ -1,8 +1,9 @@
 // ========== CONFIGURATION ==========
-const API_KEY = '19c0c74f0e8542a88ffb820481a89a6f'; // <-- Replace with your Twelve Data API key
-const BASE_URL = 'https://api.twelvedata.com/time_series';
+const API_KEY = 'd1v9ljhr01qqgeekaf70d1v9ljhr01qqgeekaf7g'; // <-- Replace with your Finnhub API key
+const BASE_URL = 'https://finnhub.io/api/v1/stock/candle';
 const DEFAULT_SYMBOL = 'AAPL';
 const WATCHLIST = ['AAPL', 'MSFT', 'TSLA', 'NVDA', 'AMZN'];
+
 
 // ========== DOM ELEMENTS ==========
 const stockNameEl = document.getElementById('stock-name');
@@ -60,28 +61,44 @@ function hideError() {
 // ========== API CALLS ==========
 
 async function fetchStockData(symbol, range) {
-    // Map range to interval and outputsize
-    let interval = '1day';
-    let outputsize = 30;
-    if (range === '1D') { interval = '5min'; outputsize = 78; }
-    else if (range === '1W') { interval = '15min'; outputsize = 26 * 5; }
-    else if (range === '1M') { interval = '1day'; outputsize = 30; }
-    else if (range === '3M') { interval = '1day'; outputsize = 90; }
-    else if (range === '1Y') { interval = '1day'; outputsize = 250; }
+    // Map range to resolution and count
+    let resolution = 'D';
+    let count = 30;
+    if (range === '1D') { resolution = '5'; count = 78; }
+    else if (range === '1W') { resolution = '15'; count = 26 * 5; }
+    else if (range === '1M') { resolution = 'D'; count = 30; }
+    else if (range === '3M') { resolution = 'D'; count = 90; }
+    else if (range === '1Y') { resolution = 'D'; count = 250; }
 
-    const url = `${BASE_URL}?symbol=${symbol}&interval=${interval}&outputsize=${outputsize}&apikey=${API_KEY}&format=JSON`;
+    const url = `${BASE_URL}?symbol=${symbol}&resolution=${resolution}&count=${count}&token=${API_KEY}`;
     const resp = await fetch(url);
     const data = await resp.json();
-    if (data.status === 'error' || !data.values) throw new Error(data.message || 'API error');
-    return data;
+    if (data.s !== 'ok') throw new Error(data.error || 'API error');
+    // Convert Finnhub format to array of objects
+    const values = data.t.map((timestamp, i) => ({
+        datetime: new Date(timestamp * 1000).toISOString().split('T')[0],
+        close: data.c[i],
+        open: data.o[i],
+        high: data.h[i],
+        low: data.l[i],
+        volume: data.v[i]
+    }));
+    return {
+        values: values,
+        meta: { name: symbol }
+    };
 }
 
 async function fetchLatestPrice(symbol) {
-    const url = `${BASE_URL}?symbol=${symbol}&interval=1min&outputsize=1&apikey=${API_KEY}&format=JSON`;
+    // Use quote endpoint for latest price
+    const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEY}`;
     const resp = await fetch(url);
     const data = await resp.json();
-    if (data.status === 'error' || !data.values) throw new Error(data.message || 'API error');
-    return data.values[0];
+    if (!data.c) throw new Error('API error');
+    return {
+        close: data.c,
+        percent_change: ((data.c - data.pc) / data.pc) * 100
+    };
 }
 
 // ========== RENDER FUNCTIONS ==========
